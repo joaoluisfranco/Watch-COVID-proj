@@ -1,5 +1,6 @@
 package com.example.watchcovid;
 
+import android.app.AlarmManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -13,6 +14,11 @@ import android.widget.TextView;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+
+import java.util.Date;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends WearableActivity {
 
@@ -31,18 +37,47 @@ public class MainActivity extends WearableActivity {
         // Enables Always-on
         setAmbientEnabled();
 
-        addbuttonNoti();
+        Timer timer = new Timer();
+
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                final int random = new Random().nextInt(101);
+                if(random < 50)
+                    addbuttonNoti("Lava as mãos", "Não te esqueças de lavar as mão!", "Lavei", "Mais Tarde");
+                else
+                    addbuttonNoti("Usa máscara", "Estás a usar máscara?", "Sim", "Não");
+            }
+
+        }, 0, 10000);
+
+        //addbuttonNoti("titulo da notiicação", "corpo da notificação");
 
         createchannel();
     }
 
-    void addbuttonNoti() {
+    /*private void setAlarmManager() {
+        //Intent intent = new Intent(this, AlarmReceiver.class);
+        Intent intent = new Intent(ALARM_SERVICE);
+        PendingIntent sender = PendingIntent.getBroadcast(this, 2, intent, 0);
+        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+        long l = new Date().getTime();
+        if (l < new Date().getTime()) {
+            l += 86400000; // start at next 24 hour
+        }
+        am.setRepeating(AlarmManager.RTC_WAKEUP, l, 86400000, sender); // 86400000
+    }*/
+
+    void addbuttonNoti(String titulo, String mensagem, String acaoPositiva, String acaoNegativa) {
 
         // we are going to add an intent to open the camera here.
         //Intent cameraIntent = new Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA);
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         PendingIntent cameraPendingIntent =
                 PendingIntent.getActivity(this, 0, cameraIntent, 0);
+
+        //Intent link1Sim = new Intent(Intent.ACTION_VIEW);
+
 
         NotificationCompat.Action.WearableExtender inlineActionForWear2 =
                 new NotificationCompat.Action.WearableExtender()
@@ -54,7 +89,16 @@ public class MainActivity extends WearableActivity {
                 new NotificationCompat.Action.Builder(
                         R.mipmap.ic_launcher,
                         //R.drawable.ic_action_time,
-                        "Lavei :)",
+                        acaoPositiva,
+                        cameraPendingIntent)
+                        .extend(inlineActionForWear2)
+                        .build();
+
+        NotificationCompat.Action pictureAction2 =
+                new NotificationCompat.Action.Builder(
+                        R.mipmap.ic_launcher,
+                        //R.drawable.ic_action_time,
+                        acaoNegativa,
                         cameraPendingIntent)
                         .extend(inlineActionForWear2)
                         .build();
@@ -63,10 +107,11 @@ public class MainActivity extends WearableActivity {
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(this, id)
                         .setSmallIcon(R.mipmap.ic_launcher)
-                        .setContentTitle("Lava as mãos!!")
-                        .setContentText("Confirma que lavaste seu porco.")
+                        .setContentTitle(titulo)
+                        .setContentText(mensagem)
                         .setChannelId(id)
-                        .addAction(pictureAction);
+                        .addAction(pictureAction)
+                        .addAction(pictureAction2);
 
 
         // Get an instance of the NotificationManager service
