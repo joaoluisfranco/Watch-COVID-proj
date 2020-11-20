@@ -4,16 +4,25 @@ import android.app.AlarmManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.wearable.activity.WearableActivity;
+import android.util.Log;
 import android.widget.TextView;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.Date;
 import java.util.Random;
@@ -22,9 +31,28 @@ import java.util.TimerTask;
 
 public class MainActivity extends WearableActivity {
 
-    // private TextView mTextView;
+    private TextView mTextView;
     public static String id = "test_channel_01";
     int notificationID = 1;
+
+    private static final String TAG = "PostDetailActivity";
+    FirebaseDatabase database = FirebaseDatabase.getInstance();
+    DatabaseReference myRef = database.getReference();
+    DatabaseReference myRef1 = myRef.child("mudancas");
+
+    public static final String TIPO = "com.example.watchcovid.TIPO";
+    public static final String RESPOSTA = "com.example.watchcovid.RESPOSTA";
+    public static final String NUMEROATUAL = "com.example.watchcovid.NUMEROATUAL";
+    public static final String TOTAL = "com.example.watchcovid.TOTAL";
+
+
+    private long lavou_sim;
+    private long lavou_nao;
+    private long mascara_sim;
+    private long mascara_nao;
+    private long total;
+
+    private int tipo=0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,86 +60,121 @@ public class MainActivity extends WearableActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //mTextView = (TextView) findViewById(R.id.text);
+        mTextView = (TextView) findViewById(R.id.text);
+
+
+        // Read from the database
+        myRef1.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+                lavou_sim = dataSnapshot.child("lavei").child("sins").getValue(Long.class);
+                lavou_nao = dataSnapshot.child("lavei").child("naos").getValue(Long.class);
+                mascara_sim = dataSnapshot.child("mascaras").child("sim").getValue(Long.class);
+                mascara_nao = dataSnapshot.child("mascaras").child("nao").getValue(Long.class);
+
+                total = dataSnapshot.child("total").getValue(Long.class);
+                mTextView.setText(  "Maos Lavadas: " + lavou_sim +
+                        "Mascaras Usadas: " + mascara_sim +
+                        "Total: " + total);
+                //Log.d(TAG, "Value is: " + lavou_sim);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Failed to read value
+                //Log.w(TAG, "Failed to read value.", error.toException());
+            }
+        });
 
         // Enables Always-on
         setAmbientEnabled();
+
 
         Timer timer = new Timer();
 
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                final int random = new Random().nextInt(101);
-                if(random < 50)
-                    addbuttonNoti("Lava as mãos", "Não te esqueças de lavar as mão!", "Lavei", "Mais Tarde");
-                else
-                    addbuttonNoti("Usa máscara", "Estás a usar máscara?", "Sim", "Não");
+                final int random = new Random().nextInt(100);
+                if(random < 50) {
+                    addbuttonNoti(1,"Lava as mãos", "Não te esqueças de lavar as mão!", "Lavei", "Mais Tarde");
+                }
+                else {
+                    addbuttonNoti(2,"Usa máscara", "Estás a usar máscara?", "Sim", "Não");
+                }
             }
 
-        }, 0, 10000);
+        }, 1000, 10000);
 
-        //addbuttonNoti("titulo da notiicação", "corpo da notificação");
 
         createchannel();
     }
 
-    /*private void setAlarmManager() {
-        //Intent intent = new Intent(this, AlarmReceiver.class);
-        Intent intent = new Intent(ALARM_SERVICE);
-        PendingIntent sender = PendingIntent.getBroadcast(this, 2, intent, 0);
-        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
-        long l = new Date().getTime();
-        if (l < new Date().getTime()) {
-            l += 86400000; // start at next 24 hour
-        }
-        am.setRepeating(AlarmManager.RTC_WAKEUP, l, 86400000, sender); // 86400000
-    }*/
-
-    void addbuttonNoti(String titulo, String mensagem, String acaoPositiva, String acaoNegativa) {
-
-        // we are going to add an intent to open the camera here.
-        //Intent cameraIntent = new Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA);
-        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        PendingIntent cameraPendingIntent =
-                PendingIntent.getActivity(this, 0, cameraIntent, 0);
-
-        //Intent link1Sim = new Intent(Intent.ACTION_VIEW);
-
+    void addbuttonNoti(int tipo, String titulo, String mensagem, String acaoPositiva, String acaoNegativa) {
 
         NotificationCompat.Action.WearableExtender inlineActionForWear2 =
                 new NotificationCompat.Action.WearableExtender()
                         .setHintDisplayActionInline(true)
                         .setHintLaunchesActivity(true);
 
-        // Add an action to allow replies.
-        NotificationCompat.Action pictureAction =
+
+
+        //BOTAO SIM
+        Intent shimIntent = new Intent(this, NotificationReceiver.class);
+        shimIntent.putExtra(getPackageName(), notificationID);
+        shimIntent.putExtra(TIPO, tipo);
+        shimIntent.putExtra(RESPOSTA, 1);
+        shimIntent.putExtra(TOTAL, total);
+
+        if(tipo == 1)
+            shimIntent.putExtra(NUMEROATUAL, lavou_sim);
+        else if(tipo == 2)
+            shimIntent.putExtra(NUMEROATUAL, mascara_sim);
+        PendingIntent shimPendingIntent =
+                PendingIntent.getActivity(this, 0, shimIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        NotificationCompat.Action Shim =
                 new NotificationCompat.Action.Builder(
-                        R.mipmap.ic_launcher,
+                        R.mipmap.ic_launcher, //FRANCO -> ICON DO SIM
                         //R.drawable.ic_action_time,
                         acaoPositiva,
-                        cameraPendingIntent)
+                        shimPendingIntent)
                         .extend(inlineActionForWear2)
                         .build();
 
-        NotificationCompat.Action pictureAction2 =
+
+        //BOTAO NAO
+        Intent naoIntent = new Intent(this, NotificationReceiver.class);
+        naoIntent.putExtra(getPackageName(), notificationID);
+        naoIntent.putExtra(TIPO, tipo);
+        naoIntent.putExtra(RESPOSTA, 2);
+        naoIntent.putExtra(TOTAL, total);
+        if(tipo == 1)
+            naoIntent.putExtra(NUMEROATUAL, lavou_nao);
+        else if(tipo == 2)
+            naoIntent.putExtra(NUMEROATUAL, mascara_nao);
+        PendingIntent naoPendingIntent =
+                PendingIntent.getActivity(this, 0, naoIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        NotificationCompat.Action Nao =
                 new NotificationCompat.Action.Builder(
-                        R.mipmap.ic_launcher,
+                        R.mipmap.ic_launcher, //FRANCO -> ICON DO NAO
                         //R.drawable.ic_action_time,
                         acaoNegativa,
-                        cameraPendingIntent)
+                        naoPendingIntent)
                         .extend(inlineActionForWear2)
                         .build();
 
         //Now create the notification.  We must use the NotificationCompat or it will not work on the wearable.
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(this, id)
-                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setSmallIcon(R.mipmap.ic_launcher) //FRANCO -> ICON DA NOTIFICAÇÃO (ACHO EU)
                         .setContentTitle(titulo)
                         .setContentText(mensagem)
                         .setChannelId(id)
-                        .addAction(pictureAction)
-                        .addAction(pictureAction2);
+                        .addAction(Shim)
+                        .addAction(Nao);
 
 
         // Get an instance of the NotificationManager service
