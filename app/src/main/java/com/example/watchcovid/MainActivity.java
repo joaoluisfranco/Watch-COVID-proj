@@ -100,11 +100,11 @@ public class MainActivity extends WearableActivity {
                 final int random = new Random().nextInt(100);
                 if(random < 50) {
                     //addbuttonNoti(1,"Lava as mãos", "Não te esqueças de lavar as mão!", "Lavei", "Mais Tarde");
-                    addbuttonNoti(1,"Wash your hands!", "Don't forget to hash your hands!", "Lavei", "Mais Tarde");
+                    addbuttonNoti(1,"Wash your hands!", "Don't forget to hash your hands!", "Done!", "Maybe later");
                 }
                 else {
                     //addbuttonNoti(2,"Usa máscara", "Estás a usar máscara?", "Sim", "Não");
-                    addbuttonNoti(2,"Usa máscara", "Estás a usar máscara?", "Sim", "Não");
+                    addbuttonNoti(2,"Wear a mask", "Are you wearing a mask?", "Yes", "No");
                 }
             }
 
