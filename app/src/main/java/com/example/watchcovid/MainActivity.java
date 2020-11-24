@@ -106,7 +106,7 @@ public class MainActivity extends WearableActivity {
                 }
             }
 
-        }, 1000, 10000);
+        }, 1000, 10000); //NO RELEASE O PERIOD FOI IGUAL A 2700000 (45 MIN)
 
 
         createchannel();
@@ -125,8 +125,9 @@ public class MainActivity extends WearableActivity {
         Intent shimIntent = new Intent(this, NotificationReceiver.class);
         shimIntent.putExtra(getPackageName(), notificationID);
         shimIntent.putExtra(TIPO, tipo);
-        shimIntent.putExtra(RESPOSTA, 1);
+        //shimIntent.putExtra(RESPOSTA, 1);
         shimIntent.putExtra(TOTAL, total);
+        shimIntent.setAction("shim");
 
         if(tipo == 1)
             shimIntent.putExtra(NUMEROATUAL, lavou_sim);
@@ -136,7 +137,7 @@ public class MainActivity extends WearableActivity {
                 PendingIntent.getActivity(this, 0, shimIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         NotificationCompat.Action Shim =
                 new NotificationCompat.Action.Builder(
-                        R.mipmap.ic_launcher, //FRANCO -> ICON DO SIM
+                        R.drawable.ic_notific, //FRANCO -> ICON DO SIM
                         //R.drawable.ic_action_time,
                         acaoPositiva,
                         shimPendingIntent)
@@ -148,8 +149,10 @@ public class MainActivity extends WearableActivity {
         Intent naoIntent = new Intent(this, NotificationReceiver.class);
         naoIntent.putExtra(getPackageName(), notificationID);
         naoIntent.putExtra(TIPO, tipo);
-        naoIntent.putExtra(RESPOSTA, 2);
         naoIntent.putExtra(TOTAL, total);
+        //naoIntent.putExtra(RESPOSTA, 2);
+        //naoIntent.setAction("Nhaum");
+
         if(tipo == 1)
             naoIntent.putExtra(NUMEROATUAL, lavou_nao);
         else if(tipo == 2)
@@ -159,8 +162,8 @@ public class MainActivity extends WearableActivity {
 
         NotificationCompat.Action Nao =
                 new NotificationCompat.Action.Builder(
-                        R.mipmap.ic_launcher, //FRANCO -> ICON DO NAO
-                        //R.drawable.ic_action_time,
+                        //R.mipmap.ic_launcher, //FRANCO -> ICON DO NAO
+                        R.drawable.ic_cancelar,
                         acaoNegativa,
                         naoPendingIntent)
                         .extend(inlineActionForWear2)
@@ -169,7 +172,8 @@ public class MainActivity extends WearableActivity {
         //Now create the notification.  We must use the NotificationCompat or it will not work on the wearable.
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(this, id)
-                        .setSmallIcon(R.mipmap.ic_launcher) //FRANCO -> ICON DA NOTIFICAÇÃO (ACHO EU)
+                        .setSmallIcon(
+                                tipo == 1 ? R.drawable.ic_maos : R.drawable.ic_mascara) //FRANCO -> ICON DA NOTIFICAÇÃO (ACHO EU)
                         .setContentTitle(titulo)
                         .setContentText(mensagem)
                         .setChannelId(id)
@@ -200,7 +204,7 @@ public class MainActivity extends WearableActivity {
         //Sets the notification light color for notifications posted to this channel, if the device supports this feature.
         mChannel.setLightColor(Color.RED);
         mChannel.enableVibration(true);
-        mChannel.setShowBadge(true);
+        mChannel.setShowBadge(false);
         mChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500, 400, 300, 200, 400});
         nm.createNotificationChannel(mChannel);
 
